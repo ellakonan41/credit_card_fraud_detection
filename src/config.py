@@ -21,3 +21,11 @@ DECISION_THRESHOLD = 0.135
 # Bornes horaires utilisées pour la feature "is_night" (étape 3)
 NIGHT_START_HOUR = 0
 NIGHT_END_HOUR = 6
+
+# Ordre exact des colonnes attendu par le modèle (celui utilisé à
+# l'entraînement, sur Kaggle : colonnes brutes puis features ajoutées).
+# Le fixer explicitement ici évite de dépendre implicitement de l'ordre
+# d'insertion des colonnes dans build_features().
+FEATURE_COLUMNS = (
+    ["Time"] + [f"V{i}" for i in range(1, 29)] + ["Amount", "Hour", "Amount_log", "is_night"]
+)

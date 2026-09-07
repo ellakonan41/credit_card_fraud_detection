@@ -8,7 +8,7 @@ optimisé (0.135) plutôt qu'au seuil par défaut de scikit-learn/XGBoost (0.5).
 import pandas as pd
 from xgboost import XGBClassifier
 
-from src.config import MODEL_PATH, DECISION_THRESHOLD
+from src.config import MODEL_PATH, DECISION_THRESHOLD, FEATURE_COLUMNS
 from src.features import build_features
 
 # Chargé une seule fois à l'import du module, pas à chaque appel de fonction
@@ -35,7 +35,12 @@ def predict_fraud(transaction: pd.DataFrame) -> pd.DataFrame:
     """
     enriched = build_features(transaction)
 
-    proba = _model.predict_proba(enriched)[:, 1]
+    # Conversion en numpy (plutôt que de passer le DataFrame directement) :
+    # XGBoost revalide les noms de colonnes à chaque appel avec un DataFrame,
+    # un chemin ~15x plus lent que l'inférence pure sur cet environnement.
+    # reindex garantit l'ordre exact attendu par le modèle avant conversion.
+    X = enriched.reindex(columns=FEATURE_COLUMNS).values
+    proba = _model.predict_proba(X)[:, 1]
 
     result = transaction.copy()
     result["fraud_probability"] = proba
