@@ -1,4 +1,4 @@
-"""API de scoring de fraude — expose predict_fraud() (src/) via HTTP.
+"""API de scoring de fraude — expose le modèle de prédiction via HTTP.
 
 Lancement local :
     uvicorn api.main:app --reload
@@ -19,8 +19,7 @@ app = FastAPI(
 
 @app.get("/health")
 def health():
-    """Endpoint de vérification que l'API est en vie (utile pour le
-    monitoring à l'étape 8, et pour Docker à l'étape 9)."""
+    """Vérifie que l'API est en vie (sondes de monitoring et d'orchestration)."""
     return {"status": "ok"}
 
 
