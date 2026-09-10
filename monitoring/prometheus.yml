@@ -1,0 +1,12 @@
+# Configuration Prometheus : quelles cibles interroger, à quelle fréquence.
+
+global:
+  scrape_interval: 15s        # fréquence de collecte des métriques
+
+scrape_configs:
+  - job_name: fraud-api
+    metrics_path: /metrics
+    static_configs:
+      # "api" = nom du service de l'API dans le réseau docker-compose.
+      # En local hors Docker, remplacer par "host.docker.internal:8000".
+      - targets: ["api:8000"]
