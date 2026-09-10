@@ -8,6 +8,7 @@
     :root {
       --bg: #0f172a; --card: #1e293b; --text: #e2e8f0; --muted: #94a3b8;
       --accent: #38bdf8; --fraud: #f87171; --ok: #4ade80; --border: #334155;
+      --track: #0b1220;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -36,14 +37,50 @@
     .attrs strong { font-size: 1.1rem; }
     .verdict {
       font-size: 1.4rem; font-weight: 700; letter-spacing: .02em;
-      padding: .75rem 1rem; border-radius: 8px; text-align: center; margin-bottom: .75rem;
+      padding: .6rem 1rem; border-radius: 8px; text-align: center; margin-bottom: 1.25rem;
     }
     .verdict.fraud { background: rgba(248,113,113,.15); color: var(--fraud); }
     .verdict.ok { background: rgba(74,222,128,.15); color: var(--ok); }
-    .reality { text-align: center; font-size: .95rem; }
+
+    .risk-head {
+      display: flex; justify-content: space-between; align-items: baseline;
+      margin-bottom: .4rem;
+    }
+    .risk-head span { color: var(--muted); font-size: .85rem; }
+    .risk-head strong { font-size: 1rem; }
+    .bar {
+      position: relative; height: 12px; background: var(--track);
+      border-radius: 6px; overflow: hidden;
+    }
+    .bar-fill { height: 100%; width: 0; transition: width .3s ease; }
+    .bar-fill.fraud { background: var(--fraud); }
+    .bar-fill.ok { background: var(--ok); }
+    .bar-threshold {
+      position: absolute; top: -3px; bottom: -3px; left: 13.5%;
+      width: 2px; background: var(--accent);
+    }
+    .scale {
+      position: relative; height: 1.4rem; margin-top: .3rem;
+      color: var(--muted); font-size: .72rem;
+    }
+    .scale .lo { position: absolute; left: 0; }
+    .scale .hi { position: absolute; right: 0; }
+    .scale .thr {
+      position: absolute; left: 13.5%; transform: translateX(-50%);
+      color: var(--accent); white-space: nowrap;
+    }
+
+    .reality { text-align: center; font-size: .95rem; margin-top: 1.25rem; }
     .reality.good { color: var(--ok); }
     .reality.bad { color: var(--fraud); }
-    .score { color: var(--muted); font-size: .9rem; margin-bottom: 1.5rem; }
+    .score { color: var(--muted); font-size: .9rem; margin-bottom: 1.25rem; }
+
+    .explain {
+      border: 1px solid var(--border); border-radius: 10px;
+      padding: .9rem 1rem; margin-bottom: 1rem;
+    }
+    .explain summary { cursor: pointer; font-size: .9rem; font-weight: 600; }
+    .explain p { color: var(--muted); font-size: .85rem; margin-top: .6rem; }
     .note {
       color: var(--muted); font-size: .8rem; border-top: 1px solid var(--border);
       padding-top: 1rem;
@@ -71,22 +108,61 @@
         <div><span>Heure</span><strong id="hour">—</strong></div>
         <div><span>Nuit</span><strong id="night">—</strong></div>
       </div>
+
       <div id="verdict" class="verdict">—</div>
+
+      <div class="risk-head">
+        <span>Risque de fraude estimé</span>
+        <strong id="risk-value">—</strong>
+      </div>
+      <div class="bar">
+        <div id="risk-fill" class="bar-fill"></div>
+        <div class="bar-threshold"></div>
+      </div>
+      <div class="scale">
+        <span class="lo">0 %</span>
+        <span class="thr">seuil 13,5 %</span>
+        <span class="hi">100 %</span>
+      </div>
+
       <div id="reality" class="reality">—</div>
     </div>
 
     <p id="score" class="score"></p>
 
+    <details class="explain">
+      <summary>Pourquoi le seuil de décision est à 13,5 % et non 50 % ?</summary>
+      <p>
+        Le modèle produit une probabilité de fraude entre 0 et 100 %. Il faut
+        choisir à partir de quel niveau on déclenche une alerte. En détection de
+        fraude, laisser passer une fraude coûte bien plus cher que vérifier une
+        fausse alerte. On abaisse donc ce seuil à 13,5 % : le modèle signale au
+        moindre doute sérieux, ce qui lui fait détecter environ 88 % des fraudes.
+        Ce seuil a été choisi en optimisant le F2-score, une métrique qui pèse le
+        rappel (fraudes détectées) plus lourd que la précision.
+      </p>
+    </details>
+
     <p class="note">
-      Les 28 variables V1–V28 du dataset sont anonymisées par PCA (confidentialité) —
-      non affichées ici car illisibles pour un humain. Le modèle, lui, les exploite.
+      Les 28 variables V1–V28 du dataset sont anonymisées par transformation PCA
+      (confidentialité des clients et commerçants) — non affichées ici car
+      illisibles pour un humain. Le modèle, lui, les exploite pleinement.
     </p>
   </main>
 
   <script>
+    const THRESHOLD = 0.135;
     let correct = 0, total = 0;
     const card = document.getElementById("card");
     const buttons = document.querySelectorAll(".buttons button");
+
+    function riskWord(p) {
+      if (p < 0.02) return "très faible";
+      if (p < THRESHOLD) return "faible";
+      if (p < 0.5) return "modéré";
+      if (p < 0.9) return "élevé";
+      return "très élevé";
+    }
 
     async function loadSample(fraud) {
       buttons.forEach(b => b.disabled = true);
@@ -108,17 +184,23 @@
       document.getElementById("hour").textContent = hour + " h";
       document.getElementById("night").textContent = (hour <= 6) ? "oui" : "non";
 
-      const p = d.prediction;
+      const p = d.prediction.fraud_probability;
+      const isFraud = d.prediction.is_fraud;
+
       const verdict = document.getElementById("verdict");
-      verdict.textContent =
-        (p.is_fraud ? "FRAUDE" : "NORMALE") +
-        "  ·  " + (p.fraud_probability * 100).toFixed(1) + " %";
-      verdict.className = "verdict " + (p.is_fraud ? "fraud" : "ok");
+      verdict.textContent = isFraud ? "FRAUDE" : "NORMALE";
+      verdict.className = "verdict " + (isFraud ? "fraud" : "ok");
+
+      document.getElementById("risk-value").textContent =
+        (p * 100).toFixed(1) + " %  ·  " + riskWord(p);
+      const fill = document.getElementById("risk-fill");
+      fill.style.width = Math.max(p * 100, 1.5) + "%";
+      fill.className = "bar-fill " + (isFraud ? "fraud" : "ok");
 
       const reality = document.getElementById("reality");
       reality.textContent =
-        "Réalité : " + (d.actual_is_fraud ? "fraude" : "normale") + " — " +
-        (d.correct ? "✓ le modèle a vu juste" : "✗ le modèle s'est trompé");
+        "Réalité : " + (d.actual_is_fraud ? "fraude" : "transaction normale") +
+        " — " + (d.correct ? "✓ le modèle a vu juste" : "✗ le modèle s'est trompé");
       reality.className = "reality " + (d.correct ? "good" : "bad");
 
       total++;
