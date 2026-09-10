@@ -4,7 +4,9 @@ Un système complet qui score une transaction par carte et répond, en quelques
 millisecondes, si elle est frauduleuse — de l'exploration des données jusqu'au
 déploiement conteneurisé avec cache et monitoring.
 
-> **Démo interactive** : _(lien à ajouter après déploiement)_
+> **Démo interactive** : **https://credit-card-fraud-detection-dkft.onrender.com**
+> _(hébergée sur une offre gratuite : le premier chargement peut prendre ~40 s, le temps que le service se réveille)_
+>
 > **Données** : [Credit Card Fraud Detection](https://www.kaggle.com/datasets/mlg-ulb/creditcardfraud) (Kaggle) — 284 807 transactions réelles, 492 fraudes.
 
 ---
