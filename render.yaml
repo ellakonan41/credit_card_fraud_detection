@@ -1,0 +1,12 @@
+# Déploiement Render (https://render.com) — API de scoring + page de démo.
+# Redis / Prometheus / Grafana ne sont pas déployés ici : ils font partie de
+# la stack locale (docker-compose) et sont documentés dans le README.
+
+services:
+  - type: web
+    name: fraud-detection-api
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: free
+    healthCheckPath: /health
+    autoDeploy: true

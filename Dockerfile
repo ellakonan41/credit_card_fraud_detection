@@ -16,4 +16,6 @@ COPY models/xgb_fraud_model.json ./models/xgb_fraud_model.json
 
 EXPOSE 8000
 
-CMD ["uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Forme shell (et non liste) pour que ${PORT} soit interprété : Render fournit
+# son propre port via cette variable ; en local, on retombe sur 8000.
+CMD uvicorn api.main:app --host 0.0.0.0 --port ${PORT:-8000}
