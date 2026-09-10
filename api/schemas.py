@@ -50,3 +50,13 @@ class PredictionResponse(BaseModel):
 
     fraud_probability: float
     is_fraud: bool
+
+
+class SampleResponse(BaseModel):
+    """Résultat de /predict/sample : une transaction de test, sa prédiction,
+    sa vraie étiquette, et si le modèle a vu juste."""
+
+    transaction: Transaction
+    prediction: PredictionResponse
+    actual_is_fraud: bool
+    correct: bool

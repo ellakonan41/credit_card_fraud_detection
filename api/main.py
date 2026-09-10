@@ -9,7 +9,8 @@ from prometheus_client import Counter, Histogram
 from prometheus_fastapi_instrumentator import Instrumentator
 
 from api.cache import get_cached, set_cached
-from api.schemas import PredictionResponse, Transaction
+from api.samples import get_sample
+from api.schemas import PredictionResponse, SampleResponse, Transaction
 from src.predict import predict_one
 
 app = FastAPI(
@@ -70,3 +71,21 @@ def predict(transaction: Transaction):
 
     set_cached(payload, result)
     return PredictionResponse(**result)
+
+
+@app.get("/predict/sample", response_model=SampleResponse)
+def predict_sample(fraud: bool | None = None):
+    """Tire une transaction du jeu de test, la score, et la compare à la
+    vérité connue. Sert la page de démonstration.
+
+    `fraud=true` / `fraud=false` pour forcer une vraie fraude / une vraie
+    transaction normale ; sans paramètre, tirage au hasard.
+    """
+    transaction, actual_is_fraud = get_sample(fraud)
+    result = predict_one(transaction)
+    return SampleResponse(
+        transaction=Transaction(**transaction),
+        prediction=PredictionResponse(**result),
+        actual_is_fraud=actual_is_fraud,
+        correct=(result["is_fraud"] == actual_is_fraud),
+    )
