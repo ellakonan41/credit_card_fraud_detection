@@ -1,0 +1,20 @@
+# Exclut de l'image tout ce qui n'est pas nécessaire pour servir l'API.
+
+venv/
+data/
+notebooks/
+.git/
+.gitignore
+__pycache__/
+*.pyc
+.pytest_cache/
+.ipynb_checkpoints/
+
+# Modèles non utilisés en production (seul xgb_fraud_model.json est copié)
+models/*.pkl
+models/*_retrained.json
+
+# Docs / config locale
+*.md
+.vscode/
+.idea/
