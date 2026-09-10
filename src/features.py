@@ -1,5 +1,4 @@
-"""Feature engineering — reproduit exactement les transformations validées
-lors de l'exploration sur Kaggle (notebook 02_feature_engineering).
+"""Feature engineering — transformations appliquées aux transactions brutes.
 
 Ces mêmes transformations doivent être appliquées à l'identique à
 l'entraînement et en production (API) : les regrouper ici garantit qu'on ne

@@ -1,8 +1,8 @@
 """Chargement du modèle entraîné et prédiction sur de nouvelles transactions.
 
-Reproduit la logique validée à l'étape 5 : le modèle est interrogé via
-predict_proba() (probabilité de fraude), puis comparé au seuil de décision
-optimisé (0.135) plutôt qu'au seuil par défaut de scikit-learn/XGBoost (0.5).
+Le modèle est interrogé via predict_proba() (probabilité de fraude), puis
+comparé au seuil de décision optimisé (0.135) plutôt qu'au seuil par défaut
+de scikit-learn/XGBoost (0.5).
 """
 
 import pandas as pd

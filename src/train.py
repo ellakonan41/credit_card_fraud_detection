@@ -1,9 +1,8 @@
 """Script d'entraînement reproductible.
 
-Reproduit en local, en un seul run, tout le pipeline validé sur Kaggle
-(étapes 4-5) : chargement des données -> feature engineering -> split ->
-recherche d'hyperparamètres (F2) -> choix du seuil de décision -> sauvegarde
-du modèle au format natif XGBoost.
+Exécute en un seul run tout le pipeline d'entraînement : chargement des
+données -> feature engineering -> split -> recherche d'hyperparamètres (F2)
+-> choix du seuil de décision -> sauvegarde du modèle au format natif XGBoost.
 
 Usage :
     python -m src.train
@@ -34,7 +33,7 @@ PARAM_DIST = {
 
 
 def find_best_threshold(y_true, y_proba):
-    """Trouve le seuil qui maximise le F2-score, comme à l'étape 5."""
+    """Trouve le seuil qui maximise le F2-score."""
     precisions, recalls, thresholds = precision_recall_curve(y_true, y_proba)
     f2_scores = (5 * precisions[:-1] * recalls[:-1]) / (
         4 * precisions[:-1] + recalls[:-1] + 1e-10
