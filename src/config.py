@@ -21,10 +21,14 @@ DECISION_THRESHOLD = 0.135
 NIGHT_START_HOUR = 0
 NIGHT_END_HOUR = 6
 
+# Colonnes brutes d'une transaction (telles que reçues par l'API).
+RAW_COLUMNS = ["Time"] + [f"V{i}" for i in range(1, 29)] + ["Amount"]
+
+# Features dérivées, ajoutées par build_features().
+DERIVED_COLUMNS = ["Hour", "Amount_log", "is_night"]
+
 # Ordre exact des colonnes attendu par le modèle (celui de l'entraînement :
 # colonnes brutes, puis features dérivées). Le fixer explicitement évite de
 # dépendre implicitement de l'ordre d'insertion des colonnes dans
 # build_features().
-FEATURE_COLUMNS = (
-    ["Time"] + [f"V{i}" for i in range(1, 29)] + ["Amount", "Hour", "Amount_log", "is_night"]
-)
+FEATURE_COLUMNS = RAW_COLUMNS + DERIVED_COLUMNS
