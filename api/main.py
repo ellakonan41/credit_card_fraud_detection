@@ -9,6 +9,7 @@ from fastapi import FastAPI
 from prometheus_client import Counter, Histogram
 from prometheus_fastapi_instrumentator import Instrumentator
 
+from api.cache import get_cached, set_cached
 from api.schemas import PredictionResponse, Transaction
 from src.predict import predict_fraud
 
@@ -34,6 +35,9 @@ FRAUD_PROBABILITY = Histogram(
     "Distribution des probabilités de fraude prédites",
     buckets=(0.01, 0.05, 0.135, 0.25, 0.5, 0.75, 0.9, 0.99, 1.0),
 )
+CACHE_HITS_TOTAL = Counter(
+    "fraud_cache_hits_total", "Nombre de requêtes servies depuis le cache Redis"
+)
 
 
 @app.get("/health")
@@ -48,9 +52,15 @@ def predict(transaction: Transaction):
     # FastAPI a déjà validé `transaction` grâce au schéma Pydantic — on est
     # certain, à ce stade, que tous les champs attendus sont présents et
     # du bon type.
-    df = pd.DataFrame([transaction.model_dump()])
+    payload = transaction.model_dump()
 
-    result = predict_fraud(df)
+    # Transaction déjà scorée récemment : on renvoie le résultat mémorisé.
+    cached = get_cached(payload)
+    if cached is not None:
+        CACHE_HITS_TOTAL.inc()
+        return PredictionResponse(**cached)
+
+    result = predict_fraud(pd.DataFrame([payload]))
     proba = float(result["fraud_probability"].iloc[0])
     is_fraud = bool(result["is_fraud"].iloc[0])
 
@@ -59,4 +69,6 @@ def predict(transaction: Transaction):
     if is_fraud:
         FRAUD_FLAGGED_TOTAL.inc()
 
-    return PredictionResponse(fraud_probability=proba, is_fraud=is_fraud)
+    response = {"fraud_probability": proba, "is_fraud": is_fraud}
+    set_cached(payload, response)
+    return PredictionResponse(**response)
