@@ -19,11 +19,14 @@ __pycache__/
 .env
 *.env.local
 
-# Modèles entraînés (souvent volumineux, à gérer séparément si besoin)
+# Modèles : on versionne le modèle de production (~1 Mo, format JSON XGBoost)
+# pour que `docker compose up` fonctionne au clonage. Le reste est ignoré
+# (pickle volumineux, modèles de test).
 *.pkl
 *.joblib
 models/*
 !models/.gitkeep
+!models/xgb_fraud_model.json
 
 # IDE / OS
 .vscode/
