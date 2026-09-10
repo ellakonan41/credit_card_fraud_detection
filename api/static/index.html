@@ -13,12 +13,17 @@
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
       font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-      background: var(--bg); color: var(--text); line-height: 1.5;
+      background: var(--bg); color: var(--text); line-height: 1.55;
       display: flex; justify-content: center; padding: 2rem 1rem;
     }
     main { width: 100%; max-width: 640px; }
-    h1 { font-size: 1.5rem; margin-bottom: .5rem; }
-    .sub { color: var(--muted); margin-bottom: 1.5rem; font-size: .95rem; }
+    h1 { font-size: 1.5rem; margin-bottom: 1rem; }
+    h2 { font-size: .8rem; text-transform: uppercase; letter-spacing: .08em;
+         color: var(--accent); margin-bottom: .4rem; }
+    section { margin-bottom: 1.5rem; }
+    section p { color: var(--muted); font-size: .9rem; }
+    section p + p { margin-top: .5rem; }
+
     .buttons { display: flex; gap: .6rem; flex-wrap: wrap; margin-bottom: 1.5rem; }
     button {
       background: var(--card); color: var(--text); border: 1px solid var(--border);
@@ -27,6 +32,7 @@
     }
     button:hover { border-color: var(--accent); }
     button:disabled { opacity: .5; cursor: wait; }
+
     .card {
       background: var(--card); border: 1px solid var(--border); border-radius: 12px;
       padding: 1.5rem; margin-bottom: 1rem;
@@ -36,7 +42,7 @@
     .attrs span { color: var(--muted); font-size: .8rem; }
     .attrs strong { font-size: 1.1rem; }
     .verdict {
-      font-size: 1.4rem; font-weight: 700; letter-spacing: .02em;
+      font-size: 1.25rem; font-weight: 700; letter-spacing: .01em;
       padding: .6rem 1rem; border-radius: 8px; text-align: center; margin-bottom: 1.25rem;
     }
     .verdict.fraud { background: rgba(248,113,113,.15); color: var(--fraud); }
@@ -77,29 +83,47 @@
 
     .explain {
       border: 1px solid var(--border); border-radius: 10px;
-      padding: .9rem 1rem; margin-bottom: 1rem;
+      padding: .9rem 1rem;
     }
     .explain summary { cursor: pointer; font-size: .9rem; font-weight: 600; }
     .explain p { color: var(--muted); font-size: .85rem; margin-top: .6rem; }
-    .note {
-      color: var(--muted); font-size: .8rem; border-top: 1px solid var(--border);
-      padding-top: 1rem;
-    }
     .hidden { display: none; }
   </style>
 </head>
 <body>
   <main>
     <h1>Détection de fraude bancaire</h1>
-    <p class="sub">
-      Le modèle score une transaction réelle tirée du jeu de test (jamais vue
-      à l'entraînement), puis on compare sa prédiction à la vérité connue.
-    </p>
+
+    <section>
+      <h2>La problématique</h2>
+      <p>
+        Sur l'ensemble des paiements par carte, moins de 0,2 % sont frauduleux —
+        mais ils pèsent lourd dans les pertes. L'enjeu : repérer ces transactions
+        en temps réel (quelques millisecondes), en détecter le maximum, sans
+        noyer les équipes de vérification sous les fausses alertes.
+      </p>
+    </section>
+
+    <section>
+      <h2>Comment tester le modèle ici</h2>
+      <p>
+        En production, une transaction arrive depuis le système de paiement sous
+        la forme d'une trentaine de valeurs numériques. 28 d'entre elles (V1 à
+        V28) sont anonymisées par transformation PCA pour protéger les données
+        des clients et des commerçants — elles n'ont donc aucune signification
+        lisible, impossible pour un humain de les saisir à la main.
+      </p>
+      <p>
+        Cette démo pioche donc de <strong>vraies transactions</strong> dans le
+        jeu de test (jamais vues par le modèle pendant l'entraînement). Comme on
+        connaît leur vraie nature, on peut afficher si le modèle a vu juste.
+      </p>
+    </section>
 
     <div class="buttons">
-      <button data-fraud="">Transaction aléatoire</button>
+      <button data-fraud="">Transaction au hasard</button>
       <button data-fraud="true">Une vraie fraude</button>
-      <button data-fraud="false">Une transaction normale</button>
+      <button data-fraud="false">Une vraie transaction normale</button>
     </div>
 
     <div id="card" class="card hidden">
@@ -138,16 +162,10 @@
         fraude, laisser passer une fraude coûte bien plus cher que vérifier une
         fausse alerte. On abaisse donc ce seuil à 13,5 % : le modèle signale au
         moindre doute sérieux, ce qui lui fait détecter environ 88 % des fraudes.
-        Ce seuil a été choisi en optimisant le F2-score, une métrique qui pèse le
-        rappel (fraudes détectées) plus lourd que la précision.
+        Ce seuil a été choisi en optimisant le F2-score, une métrique qui donne
+        plus de poids au rappel (fraudes détectées) qu'à la précision.
       </p>
     </details>
-
-    <p class="note">
-      Les 28 variables V1–V28 du dataset sont anonymisées par transformation PCA
-      (confidentialité des clients et commerçants) — non affichées ici car
-      illisibles pour un humain. Le modèle, lui, les exploite pleinement.
-    </p>
   </main>
 
   <script>
@@ -188,7 +206,7 @@
       const isFraud = d.prediction.is_fraud;
 
       const verdict = document.getElementById("verdict");
-      verdict.textContent = isFraud ? "FRAUDE" : "NORMALE";
+      verdict.textContent = isFraud ? "Transaction frauduleuse" : "Transaction normale";
       verdict.className = "verdict " + (isFraud ? "fraud" : "ok");
 
       document.getElementById("risk-value").textContent =
@@ -199,7 +217,7 @@
 
       const reality = document.getElementById("reality");
       reality.textContent =
-        "Réalité : " + (d.actual_is_fraud ? "fraude" : "transaction normale") +
+        "Réalité : " + (d.actual_is_fraud ? "transaction frauduleuse" : "transaction normale") +
         " — " + (d.correct ? "✓ le modèle a vu juste" : "✗ le modèle s'est trompé");
       reality.className = "reality " + (d.correct ? "good" : "bad");
 
