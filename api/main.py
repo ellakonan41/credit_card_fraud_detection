@@ -4,7 +4,10 @@ Lancement local :
     uvicorn api.main:app --reload
 """
 
+from pathlib import Path
+
 from fastapi import FastAPI
+from fastapi.responses import FileResponse
 from prometheus_client import Counter, Histogram
 from prometheus_fastapi_instrumentator import Instrumentator
 
@@ -38,6 +41,15 @@ FRAUD_PROBABILITY = Histogram(
 CACHE_HITS_TOTAL = Counter(
     "fraud_cache_hits_total", "Nombre de requêtes servies depuis le cache Redis"
 )
+
+
+_INDEX_HTML = Path(__file__).parent / "static" / "index.html"
+
+
+@app.get("/", include_in_schema=False)
+def demo_page():
+    """Page de démonstration interactive."""
+    return FileResponse(_INDEX_HTML)
 
 
 @app.get("/health")

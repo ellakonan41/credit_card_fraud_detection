@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Détection de fraude — Démo</title>
+  <style>
+    :root {
+      --bg: #0f172a; --card: #1e293b; --text: #e2e8f0; --muted: #94a3b8;
+      --accent: #38bdf8; --fraud: #f87171; --ok: #4ade80; --border: #334155;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg); color: var(--text); line-height: 1.5;
+      display: flex; justify-content: center; padding: 2rem 1rem;
+    }
+    main { width: 100%; max-width: 640px; }
+    h1 { font-size: 1.5rem; margin-bottom: .5rem; }
+    .sub { color: var(--muted); margin-bottom: 1.5rem; font-size: .95rem; }
+    .buttons { display: flex; gap: .6rem; flex-wrap: wrap; margin-bottom: 1.5rem; }
+    button {
+      background: var(--card); color: var(--text); border: 1px solid var(--border);
+      padding: .6rem 1rem; border-radius: 8px; cursor: pointer; font-size: .9rem;
+      transition: border-color .15s;
+    }
+    button:hover { border-color: var(--accent); }
+    button:disabled { opacity: .5; cursor: wait; }
+    .card {
+      background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+      padding: 1.5rem; margin-bottom: 1rem;
+    }
+    .attrs { display: flex; gap: 1.5rem; flex-wrap: wrap; margin-bottom: 1.25rem; }
+    .attrs div { display: flex; flex-direction: column; }
+    .attrs span { color: var(--muted); font-size: .8rem; }
+    .attrs strong { font-size: 1.1rem; }
+    .verdict {
+      font-size: 1.4rem; font-weight: 700; letter-spacing: .02em;
+      padding: .75rem 1rem; border-radius: 8px; text-align: center; margin-bottom: .75rem;
+    }
+    .verdict.fraud { background: rgba(248,113,113,.15); color: var(--fraud); }
+    .verdict.ok { background: rgba(74,222,128,.15); color: var(--ok); }
+    .reality { text-align: center; font-size: .95rem; }
+    .reality.good { color: var(--ok); }
+    .reality.bad { color: var(--fraud); }
+    .score { color: var(--muted); font-size: .9rem; margin-bottom: 1.5rem; }
+    .note {
+      color: var(--muted); font-size: .8rem; border-top: 1px solid var(--border);
+      padding-top: 1rem;
+    }
+    .hidden { display: none; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Détection de fraude bancaire</h1>
+    <p class="sub">
+      Le modèle score une transaction réelle tirée du jeu de test (jamais vue
+      à l'entraînement), puis on compare sa prédiction à la vérité connue.
+    </p>
+
+    <div class="buttons">
+      <button data-fraud="">Transaction aléatoire</button>
+      <button data-fraud="true">Une vraie fraude</button>
+      <button data-fraud="false">Une transaction normale</button>
+    </div>
+
+    <div id="card" class="card hidden">
+      <div class="attrs">
+        <div><span>Montant</span><strong id="amount">—</strong></div>
+        <div><span>Heure</span><strong id="hour">—</strong></div>
+        <div><span>Nuit</span><strong id="night">—</strong></div>
+      </div>
+      <div id="verdict" class="verdict">—</div>
+      <div id="reality" class="reality">—</div>
+    </div>
+
+    <p id="score" class="score"></p>
+
+    <p class="note">
+      Les 28 variables V1–V28 du dataset sont anonymisées par PCA (confidentialité) —
+      non affichées ici car illisibles pour un humain. Le modèle, lui, les exploite.
+    </p>
+  </main>
+
+  <script>
+    let correct = 0, total = 0;
+    const card = document.getElementById("card");
+    const buttons = document.querySelectorAll(".buttons button");
+
+    async function loadSample(fraud) {
+      buttons.forEach(b => b.disabled = true);
+      try {
+        const url = "/predict/sample" + (fraud ? "?fraud=" + fraud : "");
+        const data = await (await fetch(url)).json();
+        render(data);
+      } finally {
+        buttons.forEach(b => b.disabled = false);
+      }
+    }
+
+    function render(d) {
+      card.classList.remove("hidden");
+      const tx = d.transaction;
+      const hour = Math.floor(tx.Time / 3600) % 24;
+
+      document.getElementById("amount").textContent = tx.Amount.toFixed(2) + " €";
+      document.getElementById("hour").textContent = hour + " h";
+      document.getElementById("night").textContent = (hour <= 6) ? "oui" : "non";
+
+      const p = d.prediction;
+      const verdict = document.getElementById("verdict");
+      verdict.textContent =
+        (p.is_fraud ? "FRAUDE" : "NORMALE") +
+        "  ·  " + (p.fraud_probability * 100).toFixed(1) + " %";
+      verdict.className = "verdict " + (p.is_fraud ? "fraud" : "ok");
+
+      const reality = document.getElementById("reality");
+      reality.textContent =
+        "Réalité : " + (d.actual_is_fraud ? "fraude" : "normale") + " — " +
+        (d.correct ? "✓ le modèle a vu juste" : "✗ le modèle s'est trompé");
+      reality.className = "reality " + (d.correct ? "good" : "bad");
+
+      total++;
+      if (d.correct) correct++;
+      document.getElementById("score").textContent =
+        "Score de la session : " + correct + " / " + total + " corrects";
+    }
+
+    buttons.forEach(b => b.addEventListener("click", () => loadSample(b.dataset.fraud)));
+  </script>
+</body>
+</html>
