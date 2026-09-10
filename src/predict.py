@@ -5,10 +5,20 @@ comparé au seuil de décision optimisé (0.135) plutôt qu'au seuil par défaut
 de scikit-learn/XGBoost (0.5).
 """
 
+import math
+
+import numpy as np
 import pandas as pd
 from xgboost import XGBClassifier
 
-from src.config import MODEL_PATH, DECISION_THRESHOLD, FEATURE_COLUMNS
+from src.config import (
+    DECISION_THRESHOLD,
+    FEATURE_COLUMNS,
+    MODEL_PATH,
+    NIGHT_END_HOUR,
+    NIGHT_START_HOUR,
+    RAW_COLUMNS,
+)
 from src.features import build_features
 
 # Chargé une seule fois à l'import du module, pas à chaque appel de fonction
@@ -21,6 +31,11 @@ from src.features import build_features
 # versions différentes de la librairie, contrairement à joblib.dump/load.
 _model = XGBClassifier()
 _model.load_model(MODEL_PATH)
+
+# Inférence sur une seule transaction à la fois : le multi-threading d'XGBoost
+# (activé par défaut) coûte plus cher en orchestration qu'il ne fait gagner
+# sur si peu de données. Le mono-thread est ~9x plus rapide dans ce cas.
+_model.set_params(n_jobs=1)
 
 
 def predict_fraud(transaction: pd.DataFrame) -> pd.DataFrame:
@@ -47,3 +62,27 @@ def predict_fraud(transaction: pd.DataFrame) -> pd.DataFrame:
     result["is_fraud"] = (proba >= DECISION_THRESHOLD).astype(int)
 
     return result
+
+
+def predict_one(transaction: dict) -> dict:
+    """Score une transaction unique — chemin optimisé pour l'API.
+
+    Fait le même calcul que predict_fraud() mais sans passer par pandas
+    (construction de DataFrame, copies, reindex...), dont l'overhead fixe est
+    disproportionné pour une seule ligne. `transaction` contient les colonnes
+    brutes (Time, V1..V28, Amount).
+
+    Retourne {"fraud_probability": float, "is_fraud": bool}.
+    """
+    hour = (transaction["Time"] // 3600) % 24
+    derived = [
+        hour,
+        math.log1p(transaction["Amount"]),
+        int(NIGHT_START_HOUR <= hour <= NIGHT_END_HOUR),
+    ]
+    row = [transaction[col] for col in RAW_COLUMNS] + derived
+
+    X = np.array([row], dtype=float)
+    proba = float(_model.predict_proba(X)[0, 1])
+
+    return {"fraud_probability": proba, "is_fraud": proba >= DECISION_THRESHOLD}

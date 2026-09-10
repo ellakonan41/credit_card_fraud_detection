@@ -4,14 +4,13 @@ Lancement local :
     uvicorn api.main:app --reload
 """
 
-import pandas as pd
 from fastapi import FastAPI
 from prometheus_client import Counter, Histogram
 from prometheus_fastapi_instrumentator import Instrumentator
 
 from api.cache import get_cached, set_cached
 from api.schemas import PredictionResponse, Transaction
-from src.predict import predict_fraud
+from src.predict import predict_one
 
 app = FastAPI(
     title="Credit Card Fraud Detection API",
@@ -60,15 +59,14 @@ def predict(transaction: Transaction):
         CACHE_HITS_TOTAL.inc()
         return PredictionResponse(**cached)
 
-    result = predict_fraud(pd.DataFrame([payload]))
-    proba = float(result["fraud_probability"].iloc[0])
-    is_fraud = bool(result["is_fraud"].iloc[0])
+    result = predict_one(payload)
+    proba = result["fraud_probability"]
+    is_fraud = result["is_fraud"]
 
     PREDICTIONS_TOTAL.inc()
     FRAUD_PROBABILITY.observe(proba)
     if is_fraud:
         FRAUD_FLAGGED_TOTAL.inc()
 
-    response = {"fraud_probability": proba, "is_fraud": is_fraud}
-    set_cached(payload, response)
-    return PredictionResponse(**response)
+    set_cached(payload, result)
+    return PredictionResponse(**result)
