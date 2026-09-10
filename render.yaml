@@ -4,7 +4,7 @@
 
 services:
   - type: web
-    name: fraud-detection-api
+    name: credit-card-fraud-detection
     runtime: docker
     dockerfilePath: ./Dockerfile
     plan: free
