@@ -1,0 +1,9 @@
+# Dit à Grafana de charger tous les dashboards JSON du dossier ci-dessous.
+
+apiVersion: 1
+
+providers:
+  - name: default
+    type: file
+    options:
+      path: /etc/grafana/dashboards
