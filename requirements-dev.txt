@@ -1,0 +1,5 @@
+# Dépendances de développement (hors exécution de l'API) :
+# génération des visuels, appels HTTP de test.
+-r requirements.txt
+matplotlib==3.11.1
+requests==2.34.2
