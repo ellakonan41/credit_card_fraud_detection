@@ -96,9 +96,10 @@ rater une fraude coûte plus cher qu'une fausse alerte).
 
 ![Courbe précision-rappel](docs/precision_recall_curve.png)
 
-La courbe montre pourquoi viser un rappel de 95 % n'est pas réaliste ici : au-delà
-de ~88 %, la précision s'effondre. Le point retenu est le meilleur compromis
-atteignable avec ces données.
+La courbe reste haute sur une large plage puis chute au-delà de ~88 % de rappel :
+au-delà de ce point, chaque fraude supplémentaire détectée coûte de plus en plus
+de fausses alertes. Le point retenu (0,135) est le meilleur compromis sur cette
+courbe.
 
 ![Matrice de confusion](docs/confusion_matrix.png)
 
